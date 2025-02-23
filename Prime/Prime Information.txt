@@ -1,0 +1,2 @@
+Number of Primes : 78479
+end : 1000000
