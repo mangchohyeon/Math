@@ -1,71 +1,85 @@
 #include "Fraction.h"
 
-// 최대공약수를 이용한 약분 함수
-long long gcd(long long a, long long b)
-{
-    while (b != 0)
-    {
-        long long temp = b;
-        b = a % b;
-        a = temp;
-    }
-    return a;
-}
-
-// 약분하는 함수
+// 약분 함수
 void fraction::reduce()
 {
-    if (den < 0) // 분모가 음수일 경우, 부호를 조정
+    long long g = std::gcd(num, den);
+    num /= g;
+    den /= g;
+    if (den < 0)
     {
         num = -num;
         den = -den;
     }
-    long long g = gcd(abs(num), abs(den));
-    num /= g;
-    den /= g;
 }
 
-// 기본 생성자
+// 생성자
 fraction::fraction(long long n, long long d) : num(n), den(d)
 {
     reduce();
 }
 
-// int 생성자
 fraction::fraction(int n) : num(n), den(1)
 {
 }
 
-// double을 fraction으로 변환하는 생성자
 fraction::fraction(double d)
 {
-    const long long precision = 1'000'000'000LL; // 정밀도를 위해 10^9 사용
-    num = round(d * precision);
+    const long long precision = 1000000000; // 소수점 이하 자리수
+    num = static_cast<long long>(d * precision);
     den = precision;
     reduce();
 }
 
-// fraction과 int, double 간의 연산 지원
-fraction fraction::operator+(int n) const { return *this + fraction(n); }
-fraction fraction::operator-(int n) const { return *this - fraction(n); }
-fraction fraction::operator*(int n) const { return *this * fraction(n); }
-fraction fraction::operator/(int n) const { return *this / fraction(n); }
+// 사칙연산 오버로딩
+fraction fraction::operator+(const fraction& other) const
+{
+    return fraction(num * other.den + other.num * den, den * other.den);
+}
 
-fraction fraction::operator+(double d) const { return *this + fraction(d); }
-fraction fraction::operator-(double d) const { return *this - fraction(d); }
-fraction fraction::operator*(double d) const { return *this * fraction(d); }
-fraction fraction::operator/(double d) const { return *this / fraction(d); }
+fraction fraction::operator-(const fraction& other) const
+{
+    return fraction(num * other.den - other.num * den, den * other.den);
+}
 
-// 반대 순서 연산 지원
-fraction operator+(int n, const fraction& f) { return fraction(n) + f; }
-fraction operator-(int n, const fraction& f) { return fraction(n) - f; }
-fraction operator*(int n, const fraction& f) { return fraction(n) * f; }
-fraction operator/(int n, const fraction& f) { return fraction(n) / f; }
+fraction fraction::operator*(const fraction& other) const
+{
+    return fraction(num * other.num, den * other.den);
+}
 
-fraction operator+(double d, const fraction& f) { return fraction(d) + f; }
-fraction operator-(double d, const fraction& f) { return fraction(d) - f; }
-fraction operator*(double d, const fraction& f) { return fraction(d) * f; }
-fraction operator/(double d, const fraction& f) { return fraction(d) / f; }
+fraction fraction::operator/(const fraction& other) const
+{
+    return fraction(num * other.den, den * other.num);
+}
+
+// % 연산자 오버로딩
+fraction fraction::operator%(const fraction& other) const
+{
+    fraction div_result = *this / other;
+    long long quotient = div_result.num / div_result.den;
+    return *this - fraction(quotient) * other;
+}
+
+// int 및 double과의 연산 지원
+fraction fraction::operator+(int value) const { return *this + fraction(value); }
+fraction fraction::operator-(int value) const { return *this - fraction(value); }
+fraction fraction::operator*(int value) const { return *this * fraction(value); }
+fraction fraction::operator/(int value) const { return *this / fraction(value); }
+fraction fraction::operator%(int value) const { return *this % fraction(value); }
+
+fraction fraction::operator+(double value) const { return *this + fraction(value); }
+fraction fraction::operator-(double value) const { return *this - fraction(value); }
+fraction fraction::operator*(double value) const { return *this * fraction(value); }
+fraction fraction::operator/(double value) const { return *this / fraction(value); }
+fraction fraction::operator%(double value) const { return *this % fraction(value); }
+
+// 비교 연산자 오버로딩
+bool fraction::operator<(const fraction& other) const { return num * other.den < other.num * den; }
+bool fraction::operator>(const fraction& other) const { return num * other.den > other.num * den; }
+bool fraction::operator<=(const fraction& other) const { return !(*this > other); }
+bool fraction::operator>=(const fraction& other) const { return !(*this < other); }
+bool fraction::operator==(const fraction& other) const { return num == other.num && den == other.den; }
+bool fraction::operator!=(const fraction& other) const { return !(*this == other); }
 
 // 대입 연산자 오버로딩
 fraction& fraction::operator=(const fraction& other)
@@ -75,40 +89,30 @@ fraction& fraction::operator=(const fraction& other)
     return *this;
 }
 
-fraction& fraction::operator=(double d)
+fraction& fraction::operator=(int value)
 {
-    *this = fraction(d); // double → fraction 변환 후 대입
-    return *this;
-}
-
-fraction& fraction::operator=(int n)
-{
-    num = n;
+    num = value;
     den = 1;
     return *this;
 }
 
-// 출력 연산자 오버로딩 
+fraction& fraction::operator=(double value)
+{
+    *this = fraction(value);
+    return *this;
+}
+
+// 입출력 연산자 오버로딩 (std::ostream을 사용하면 std::ofstream 등 모든 스트림에서 동작)
 std::ostream& operator<<(std::ostream& os, const fraction& f)
 {
     os << f.num << "/" << f.den;
     return os;
 }
 
-// 입력 연산자 오버로딩 (콘솔)
 std::istream& operator>>(std::istream& is, fraction& f)
 {
     char slash;
     is >> f.num >> slash >> f.den;
     f.reduce();
     return is;
-}
-
-// 입력 연산자 오버로딩 (파일)
-std::ifstream& operator>>(std::ifstream& ifs, fraction& f)
-{
-    char slash;
-    ifs >> f.num >> slash >> f.den;
-    f.reduce();
-    return ifs;
 }
